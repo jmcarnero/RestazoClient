@@ -49,7 +49,7 @@ new RestazoClient(resCallback).execute("http://example.com/rest", "post", "param
 Si no se requieren parametros ni tipo de petición (GET por defecto) puede llamarse con:
 
 ```java
-new RestazoClient(resCallback).execute(http://example.com/rest);
+new RestazoClient(resCallback).execute("http://example.com/rest");
 ```
 
 _Testeo en Android 4.4_.
@@ -99,13 +99,13 @@ RestazoClient.RestazoClientCallback resCallback = new RestazoClient.RestazoClien
     }
 };
 
-new RestazoClient(resCallback).execute(http://example.com/rest, "post", "param1=0", "param2=5");
+new RestazoClient(resCallback).execute("http://example.com/rest", "post", "param1=0", "param2=5");
 ```
 
 If no parameters or type of request (GET by default) are required, it can be called with:
 
 ```java
-new RestazoClient(resCallback).execute(http://example.com/rest);
+new RestazoClient(resCallback).execute("http://example.com/rest");
 ```
 
 _Tested on Android 4.4_.
