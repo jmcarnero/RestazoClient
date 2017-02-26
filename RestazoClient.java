@@ -143,7 +143,8 @@ public class RestazoClient extends AsyncTask<String, String, Map<String, Object>
 
         HttpURLConnection myConnection = (HttpURLConnection) oUrl.openConnection(); //Create connection
 
-        if (myConnection instanceof HttpsURLConnection) { //FIXME solo para pruebas, deshabilita comprobacion SSL
+        //FIXME solo para pruebas, deshabilita comprobacion SSL
+        /*if (myConnection instanceof HttpsURLConnection) {
             HttpsURLConnection myHttpsConnection = (HttpsURLConnection) myConnection;
             myHttpsConnection.setSSLSocketFactory(SSLCertificateSocketFactory.getInsecure(0, null));
 
@@ -159,8 +160,8 @@ public class RestazoClient extends AsyncTask<String, String, Map<String, Object>
                 }
             };
 
-            myHttpsConnection.setHostnameVerifier(hostnameVerifier);/**/
-        }
+            myHttpsConnection.setHostnameVerifier(hostnameVerifier);
+        }/**/
 
         myConnection.setRequestMethod(this.sMethod);
         this.sMethod = myConnection.getRequestMethod(); //por si no se ha pasado un metodo correcto //TODO posible problema si los parametros ya se han añadido al ser GET
@@ -182,7 +183,6 @@ public class RestazoClient extends AsyncTask<String, String, Map<String, Object>
                 out.close();
             }
         }
-
 
         if (myConnection.getResponseCode() == 200) {
             InputStream responseBody = myConnection.getInputStream();
