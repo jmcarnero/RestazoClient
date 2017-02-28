@@ -103,7 +103,13 @@ public class RestazoClient extends AsyncTask<String, String, Map<String, Object>
         } catch (Exception e) {
             //e.printStackTrace();
             aReturn.put("error", e.getLocalizedMessage());
-        }
+        } /*catch (MalformedURLException e) {
+            // handle invalid URL
+        } catch (SocketTimeoutException e) {
+            // hadle timeout
+        } catch (IOException e) {
+            // handle I/0
+        }*/
 
         this.bDone = true;
         this.publishProgress("end");
@@ -141,14 +147,14 @@ public class RestazoClient extends AsyncTask<String, String, Map<String, Object>
 
         URL oUrl = new URL(this.sUrl); //Create URL
 
-        HttpURLConnection myConnection = (HttpURLConnection) oUrl.openConnection(); //Create connection
+        HttpURLConnection urlConnection = (HttpURLConnection) oUrl.openConnection(); //Create connection
 
         //FIXME solo para pruebas, deshabilita comprobacion SSL
-        /*if (myConnection instanceof HttpsURLConnection) {
-            HttpsURLConnection myHttpsConnection = (HttpsURLConnection) myConnection;
-            myHttpsConnection.setSSLSocketFactory(SSLCertificateSocketFactory.getInsecure(0, null));
+        if (urlConnection instanceof HttpsURLConnection) {
+            HttpsURLConnection httpsUrlConnection = (HttpsURLConnection) urlConnection;
+            httpsUrlConnection.setSSLSocketFactory(SSLCertificateSocketFactory.getInsecure(0, null));
 
-            //myHttpsConnection.setHostnameVerifier(new AllowAllHostnameVerifier());
+            //httpsUrlConnection.setHostnameVerifier(new AllowAllHostnameVerifier());
 
             //crea un HostnameVerifier que suplanta al esperado
             HostnameVerifier hostnameVerifier = new HostnameVerifier() {
@@ -160,32 +166,35 @@ public class RestazoClient extends AsyncTask<String, String, Map<String, Object>
                 }
             };
 
-            myHttpsConnection.setHostnameVerifier(hostnameVerifier);
+            httpsUrlConnection.setHostnameVerifier(hostnameVerifier);
         }/**/
 
-        myConnection.setRequestMethod(this.sMethod);
-        this.sMethod = myConnection.getRequestMethod(); //por si no se ha pasado un metodo correcto //TODO posible problema si los parametros ya se han añadido al ser GET
+        urlConnection.setRequestMethod(this.sMethod);
+        this.sMethod = urlConnection.getRequestMethod(); //por si no se ha pasado un metodo correcto //TODO posible problema si los parametros ya se han añadido al ser GET
 
-        myConnection.setRequestProperty("User-Agent", "sargazos.net-RestazoClient-v1b");
-        myConnection.setRequestProperty("Accept-Charset", this.sCharset);
-        myConnection.setRequestProperty("Accept", "application/json"); //de momento espera json, forzado
-        //myConnection.setRequestProperty("ACCEPT-LANGUAGE", "en-US,en;0.5");
+        urlConnection.setRequestProperty("User-Agent", "sargazos.net-RestazoClient-v1b");
+        urlConnection.setRequestProperty("Accept-Charset", this.sCharset);
+        urlConnection.setRequestProperty("Accept", "application/json"); //de momento espera json, forzado
+        //urlConnection.setRequestProperty("ACCEPT-LANGUAGE", "en-US,en;0.5");
 
         if (this.sMethod.equals("POST") || this.sMethod.equals("PUT")) { //TODO ver que otros tipos de peticion requieren Content-Type
-            myConnection.setDoOutput(true); //fuerza el cambio del tipo de petición a POST si encuentra GET
-            myConnection.setRequestProperty("Content-Type", "application/x-ww-form-urlencoded");
+            urlConnection.setDoOutput(true); //fuerza el cambio del tipo de petición a POST si encuentra GET
+            urlConnection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 
             if (this.sParams.length() > 0) { //parametros HTTP
-                myConnection.setRequestProperty("Content-Length", "" + Integer.toString(this.sParams.getBytes().length));
-                myConnection.setFixedLengthStreamingMode(this.sParams.getBytes().length);
-                PrintWriter out = new PrintWriter(myConnection.getOutputStream());
+                urlConnection.setRequestProperty("Content-Length", "" + Integer.toString(this.sParams.getBytes().length));
+                urlConnection.setFixedLengthStreamingMode(this.sParams.getBytes().length);
+
+                PrintWriter out = new PrintWriter(urlConnection.getOutputStream());
                 out.print(this.sParams);
                 out.close();
             }
         }
 
-        if (myConnection.getResponseCode() == 200) {
-            InputStream responseBody = myConnection.getInputStream();
+        int responseCode = urlConnection.getResponseCode();
+
+        if (responseCode == HttpURLConnection.HTTP_OK) { //codigo 200 de respuesta
+            InputStream responseBody = urlConnection.getInputStream();
 
             StringBuilder stringBuilder = new StringBuilder();
             String line = "";
@@ -196,10 +205,10 @@ public class RestazoClient extends AsyncTask<String, String, Map<String, Object>
 
             sReturn = stringBuilder.toString();
         } else {
-            sReturn = "{\"error\":\"HTTP Connection code: " + myConnection.getResponseCode() + "\"}";
+            sReturn = "{\"error\":\"HTTP Connection code: " + responseCode + "\"}";
         }
 
-        myConnection.disconnect(); //cerrando conexion
+        urlConnection.disconnect(); //cerrando conexion
 
         return sReturn;
     }
@@ -211,28 +220,30 @@ public class RestazoClient extends AsyncTask<String, String, Map<String, Object>
      */
     private void httpParams(String[] aParams) {
         ArrayList<String> aParamsTemp = new ArrayList<String>();
+        String sSeparador = "&";
+        char sIgual = '=';
 
         if (aParams.length > 1) {
             //System.arraycopy(aParams, 0, this.aParams, 1, aParams.length - 1);
 
             for (int iCont = 1; iCont < aParams.length; iCont++) {
-                Integer iIgual = aParams[iCont].indexOf('=');
+                Integer iIgual = aParams[iCont].indexOf(sIgual);
 
                 if (iIgual != -1) { //solo los fragmentos "clave=valor"
                     try {
                         String sIni = URLEncoder.encode(aParams[iCont].substring(0, iIgual), this.sCharset); //TODO debe url-codificarse esta parte?
-                        String sFin = URLEncoder.encode(aParams[iCont].substring(iIgual + 1), this.sCharset); //TODO debe url-codificarse esta parte?
+                        String sFin = URLEncoder.encode(aParams[iCont].substring(iIgual + 1), this.sCharset);
 
-                        aParamsTemp.add(sIni + "=" + sFin);
+                        aParamsTemp.add(sIni + sIgual + sFin);
                     } catch (UnsupportedEncodingException e) { //problemas con el charset
                         //e.printStackTrace();
-                        aParamsTemp.add("-=-");
+                        aParamsTemp.add("-" + sIgual + "-");
                     }
                 }
             }
         }
 
-        this.sParams = this.implode(aParamsTemp, "&");
+        this.sParams = this.implode(aParamsTemp, sSeparador);
     }
 
     /**
